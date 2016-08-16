@@ -1,3 +1,16 @@
+/*
+Package gcrypt is an util to work with aes 256 encryption. It supports key
+derivation from user a provided password. The derivation either generates a new
+salt or uses a provided one.
+
+Salt must be unique for each password.
+
+Encrypt uses 256 bit key (probably derivated from a user provided password) and
+uses aes 256 with CFB mode. After a data is encrypted, HMAC is calculated and
+appended to encrypted data.
+
+Decrypt checks if HMAC is valid; return error if it is not.
+*/
 package gcrypt
 
 import (
@@ -86,7 +99,8 @@ func validateHMAC(key, data []byte) []byte {
 	return message
 }
 
-// Encrypt encrypts data with aes 256 and adds HMAC(EnM).
+// Encrypt encrypts data with aes 256 and adds HMAC(EnM). Fails if key is not
+// 256 bit or it data is empty.
 func Encrypt(key, data []byte) ([]byte, error) {
 	if len(key) != 32 {
 		return nil, errors.New("This is not a 256 bit key")
