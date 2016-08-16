@@ -130,3 +130,99 @@ func TestValidateHMACFailsIfDataIsModified(t *testing.T) {
 		t.Error("MAC must fail with modified data")
 	}
 }
+
+func TestEncryptFailsForNilKey(t *testing.T) {
+	_, err := Encrypt(nil, []byte("data"))
+	if err == nil {
+		t.Error("Must fail if key is nil")
+	}
+}
+
+func TestEncryptFailsForKeyIsNot32Bytes(t *testing.T) {
+	_, err := Encrypt([]byte("not-long-enough"), []byte("data"))
+	if err == nil {
+		t.Error("Must fail if key is nil")
+	}
+}
+
+func TestEncryptFailsForNilData(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	_, err := Encrypt(key, nil)
+	if err == nil {
+		t.Error("Must fail if data is nil")
+	}
+}
+
+func TestEncryptFailsForEmptyData(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	_, err := Encrypt(key, []byte(""))
+	if err == nil {
+		t.Error("Must fail if data is empty")
+	}
+}
+
+func TestEncryptWorksWithValidInput(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	encrypted, err := Encrypt(key, data)
+	if err != nil {
+		t.Error("Must not fail")
+	}
+	if len(encrypted) == 0 {
+		t.Error("Encrypted result must not be empty")
+	}
+}
+
+func TestDecryptFailsForNilKey(t *testing.T) {
+	_, err := Decrypt(nil, []byte("data"))
+	if err == nil {
+		t.Error("Must fail if key is nil")
+	}
+}
+
+func TestDecryptFailsForKeyIsNot32Bytes(t *testing.T) {
+	_, err := Decrypt([]byte("not-long-enough"), []byte("data"))
+	if err == nil {
+		t.Error("Must fail if key is nil")
+	}
+}
+
+func TestDecryptFailsForNilData(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	_, err := Decrypt(key, nil)
+	if err == nil {
+		t.Error("Must fail if data is nil")
+	}
+}
+
+func TestDecryptFailsForEmptyData(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	_, err := Decrypt(key, []byte(""))
+	if err == nil {
+		t.Error("Must fail if data is empty")
+	}
+}
+
+func TestDecryptWorksWithValidInput(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	encrypted, _ := Encrypt(key, data)
+	decrypted, err := Decrypt(key, encrypted)
+	if err != nil {
+		t.Error("Valid encrypted message should not fail")
+	}
+	if !reflect.DeepEqual(data, decrypted) {
+		t.Error("Decrypted data must be the same as original data")
+	}
+}
+
+func TestDecryptFailsWithWrongKey(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	key2 := []byte("abc45678901234567890123456789012")
+	data := []byte("some-data")
+	encrypted, _ := Encrypt(key, data)
+	_, err := Decrypt(key2, encrypted)
+	if err == nil {
+		t.Error("Must fail with invalid key")
+	}
+}

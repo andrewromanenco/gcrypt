@@ -2,7 +2,10 @@ package gcrypt
 
 import (
 	"errors"
+	"io"
 
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -81,4 +84,52 @@ func validateHMAC(key, data []byte) []byte {
 		}
 	}
 	return message
+}
+
+// Encrypt encrypts data with aes 256 and adds HMAC(EnM).
+func Encrypt(key, data []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errors.New("This is not a 256 bit key")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("Data is empty")
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	ciphertext := make([]byte, aes.BlockSize+len(data))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
+	}
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], data)
+	return appendHMAC(key, ciphertext), nil
+}
+
+// Decrypt validates mac and returns decoded data.
+func Decrypt(key, data []byte) ([]byte, error) {
+	if len(key) != 32 {
+		return nil, errors.New("This is not a 256 bit key")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("Data is empty")
+	}
+	ciphertext := validateHMAC(key, data)
+	if ciphertext == nil {
+		return nil, errors.New("Invalid HMAC")
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(ciphertext) < aes.BlockSize {
+		return nil, errors.New("Ciphertext too short")
+	}
+	iv := ciphertext[:aes.BlockSize]
+	result := ciphertext[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(result, result)
+	return result, nil
 }
