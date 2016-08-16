@@ -45,3 +45,42 @@ func TestDerivateKeyReturnsDifferentKeySaltWhenCalledTwice(t *testing.T) {
 		t.Error("Salt must be different for each call")
 	}
 }
+
+func TestDerivateKeyWithSaltFailsOnEmptyPassword(t *testing.T) {
+	_, err := DerivateKey256WithSalt("", []byte("12345678901234567890123456789012"))
+	if err == nil {
+		t.Error("Must fail on empty password")
+	}
+}
+
+func TestDerivateKeyWithSaltFailsOnEmptySalt(t *testing.T) {
+	_, err := DerivateKey256WithSalt("password", nil)
+	if err == nil {
+		t.Error("Must fail on no salt")
+	}
+}
+
+func TestDerivateKeyWithSaltFailsOnWrongSizeSalt(t *testing.T) {
+	_, err := DerivateKey256WithSalt("password", []byte("too-short"))
+	if err == nil {
+		t.Error("Must fail on salt with wrong size")
+	}
+}
+
+func TestDerivateKeyWithSaltReturns256BitKey(t *testing.T) {
+	key, err := DerivateKey256WithSalt("password", []byte("12345678901234567890123456789012"))
+	if err != nil {
+		t.Error("Must not return any errors")
+	}
+	if len(key) != 32 {
+		t.Error("Must return 256 bit key")
+	}
+}
+
+func TestDerivateKeyWithSaltReturnsSameKey(t *testing.T) {
+	key1, _ := DerivateKey256WithSalt("password", []byte("12345678901234567890123456789012"))
+	key2, _ := DerivateKey256WithSalt("password", []byte("12345678901234567890123456789012"))
+	if !reflect.DeepEqual(key1, key2) {
+		t.Error("Must return same key for same pwd and salt")
+	}
+}
