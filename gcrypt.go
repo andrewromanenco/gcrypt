@@ -3,7 +3,9 @@ package gcrypt
 import (
 	"errors"
 
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -46,4 +48,37 @@ func generateSalt(size int) ([]byte, error) {
 		return nil, err
 	}
 	return salt, nil
+}
+
+// appendHMAC appends 32 bytes to data. Returns nil if no data is provided.
+func appendHMAC(key, data []byte) []byte {
+	if len(data) == 0 {
+		return nil
+	}
+	macProducer := hmac.New(sha256.New, key)
+	macProducer.Write(data)
+	mac := macProducer.Sum(nil)
+	return append(data, mac...)
+}
+
+// validateHMAC checks mac, and returns original data without mac bytes.
+// Returns nil, if mac is not valid.
+func validateHMAC(key, data []byte) []byte {
+	if len(data) <= 32 {
+		return nil
+	}
+	message := data[:len(data)-32]
+	mac := data[len(data)-32:]
+	macProducer := hmac.New(sha256.New, key)
+	macProducer.Write(message)
+	calculatedMac := macProducer.Sum(nil)
+	if calculatedMac == nil {
+		return nil
+	}
+	for i := 0; i < 32; i++ {
+		if mac[i] != calculatedMac[i] {
+			return nil
+		}
+	}
+	return message
 }

@@ -84,3 +84,49 @@ func TestDerivateKeyWithSaltReturnsSameKey(t *testing.T) {
 		t.Error("Must return same key for same pwd and salt")
 	}
 }
+
+func TestAppendHMACFailsOnNilInput(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	result := appendHMAC(key, nil)
+	if result != nil {
+		t.Error("Must return nil if input is nil")
+	}
+}
+
+func TestAppendHMACFailsOn0Input(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	result := appendHMAC(key, []byte(""))
+	if result != nil {
+		t.Error("Must return nil if input is empty")
+	}
+}
+
+func TestAppendHMACIncreasesDataLen(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	result := appendHMAC(key, data)
+	if len(data)+32 != len(result) {
+		t.Error("Result must be longer by 32 bytes of hmac")
+	}
+}
+
+func TestValidateHMACWorksForValidData(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	withHmac := appendHMAC(key, data)
+	result := validateHMAC(key, withHmac)
+	if !reflect.DeepEqual(data, result) {
+		t.Error("MAC validation failed")
+	}
+}
+
+func TestValidateHMACFailsIfDataIsModified(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	withHmac := appendHMAC(key, data)
+	withHmac[2] = 99
+	result := validateHMAC(key, withHmac)
+	if result != nil {
+		t.Error("MAC must fail with modified data")
+	}
+}
