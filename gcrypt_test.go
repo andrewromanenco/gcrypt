@@ -226,3 +226,13 @@ func TestDecryptFailsWithWrongKey(t *testing.T) {
 		t.Error("Must fail with invalid key")
 	}
 }
+
+func TestConfirmEncryptHasRandomizedOutput(t *testing.T) {
+	key := []byte("12345678901234567890123456789012")
+	data := []byte("some-data")
+	encrypted1, _ := Encrypt(key, data)
+	encrypted2, _ := Encrypt(key, data)
+	if reflect.DeepEqual(encrypted1, encrypted2) {
+		t.Error("Result must be different for every encrypt run")
+	}
+}
